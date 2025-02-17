@@ -46,6 +46,13 @@ func run() error {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		slog.Info("http request",
+			"method", r.Method,
+			"path", r.URL.Path,
+			"address", r.RemoteAddr,
+			"query", r.URL.RawQuery,
+		)
+
 		now := time.Now()
 		go logRequest(ctx, now, r)
 
