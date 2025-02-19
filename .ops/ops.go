@@ -29,8 +29,9 @@ func main() {
 	github.Secrets = secrets
 	goapp.Name = "echo"
 	o := Ops{}
-	o.Postgres = true
-	o.Hostname = "echo.lesiw.dev"
 	o.EnvSecrets = secrets
+	o.Hostname = "echo.lesiw.dev"
+	o.Postgres = true
+	o.Port = 8080
 	ops.Handle(o)
 }
