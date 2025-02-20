@@ -46,15 +46,22 @@ func run() error {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		ip, _, _ := strings.Cut(r.RemoteAddr, ":")
+		for k, v := range r.Header {
+			if k == "X-Real-Ip" && len(v) > 0 && v[0] != "" {
+				ip = v[0]
+				break
+			}
+		}
 		slog.Info("http request",
 			"method", r.Method,
 			"path", r.URL.Path,
-			"address", r.RemoteAddr,
+			"address", ip,
 			"query", r.URL.RawQuery,
 		)
 
 		now := time.Now()
-		go logRequest(ctx, now, r)
+		go logRequest(ctx, now, r, ip)
 
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
@@ -81,7 +88,9 @@ func run() error {
 	return http.ListenAndServe(":8080", nil)
 }
 
-func logRequest(ctx context.Context, now time.Time, r *http.Request) {
+func logRequest(
+	ctx context.Context, now time.Time, r *http.Request, ipstr string,
+) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		slog.Error("could not read request body", "error", err.Error())
@@ -98,12 +107,9 @@ func logRequest(ctx context.Context, now time.Time, r *http.Request) {
 		headersJSON = []byte("")
 	}
 
-	var ip netip.Addr
-	ipPort, err := netip.ParseAddrPort(r.RemoteAddr)
+	ip, err := netip.ParseAddr(ipstr)
 	if err != nil {
 		slog.Error("could not parse ip", "error", err.Error())
-	} else {
-		ip = ipPort.Addr()
 	}
 
 	_, err = db.Exec(ctx, stmt.AddRequest,
