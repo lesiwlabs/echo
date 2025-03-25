@@ -75,6 +75,10 @@ gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
 gopkg.in/yaml.v3 v3.0.1/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
+labs.lesiw.io/ctr v0.0.0-20250325033636-e65e805360cb h1:hHevkIpE/oT/k8N6al5o81ClBzOUZovtpsKzwakdSRI=
+labs.lesiw.io/ctr v0.0.0-20250325033636-e65e805360cb/go.mod h1:NEGnQMhxLbypeliGzC+rvvWDeYcapuQsRcdd5kFCzHI=
+lesiw.io/ctrctl v0.13.0 h1:yDI8b23yZQsjjIFSdkH1gstUvdkKeW05gjm0Rctmnt0=
+lesiw.io/ctrctl v0.13.0/go.mod h1:qhIy8Yy6hV37ee8ASHtAuLL4YeIaWMtcQnA2jV+FFlQ=
 lesiw.io/defers v0.9.0 h1:Sg7RYbhxfHhXMHclO65MJ4oRbyhfSBSeHQw4YjLr6n0=
 lesiw.io/defers v0.9.0/go.mod h1:AP09yGFHxL5vmTVJxkPL33N1hWI4OzHwTEOzilbDZU4=
 lesiw.io/plain v0.4.0 h1:rpQP5o43JaAGETF+01KQNgA/mvLenQHzYYzD9DwU7XA=

@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"maps"
+	"net"
 	"net/http"
 	"net/netip"
 	"os"
@@ -19,6 +20,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"labs.lesiw.io/ctr"
 	"labs.lesiw.io/echo/internal/stmt"
 	"lesiw.io/defers"
 	"lesiw.io/plain"
@@ -35,57 +37,80 @@ func main() {
 var db *pgxpool.Pool
 var ctx = context.Background()
 
+// ez execs f if v is zero.
+func ez[T comparable](v T, f func() error) error {
+	var zero T
+	if v != zero {
+		return nil
+	}
+	return f()
+}
+
+var hostname string
+
 func run() error {
+	if err := ez(os.Getenv("PGHOST"), ctr.Postgres); err != nil {
+		return fmt.Errorf("failed to set up postgres: %w", err)
+	}
 	db = plain.ConnectPgx(ctx)
 	defers.Add(db.Close)
 
-	hostname, err := os.Hostname()
+	var err error
+	hostname, err = os.Hostname()
 	if err != nil {
 		hostname = "<unknown>"
 		slog.Error(err.Error())
 	}
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		ip, _, _ := strings.Cut(r.RemoteAddr, ":")
-		for k, v := range r.Header {
-			if k == "X-Real-Ip" && len(v) > 0 && v[0] != "" {
-				ip = v[0]
-				break
-			}
+	l, err := net.Listen("tcp4", ":8080")
+	if err != nil {
+		return fmt.Errorf("could not listen on port 8080: %w", err)
+	}
+	return http.Serve(l, echo)
+}
+
+type server func(w http.ResponseWriter, r *http.Request)
+
+func (f server) ServeHTTP(w http.ResponseWriter, r *http.Request) { f(w, r) }
+
+var echo server = func(w http.ResponseWriter, r *http.Request) {
+	ip, _, _ := strings.Cut(r.RemoteAddr, ":")
+	for k, v := range r.Header {
+		if k == "X-Real-Ip" && len(v) > 0 && v[0] != "" {
+			ip = v[0]
+			break
 		}
-		slog.Info("http request",
-			"method", r.Method,
-			"path", r.URL.Path,
-			"address", ip,
-			"query", r.URL.RawQuery,
-		)
+	}
+	slog.Info("http request",
+		"method", r.Method,
+		"path", r.URL.Path,
+		"address", ip,
+		"query", r.URL.RawQuery,
+	)
 
-		now := time.Now()
-		go logRequest(ctx, now, r, ip)
+	now := time.Now()
+	go logRequest(ctx, now, r, ip)
 
-		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
 
-		fmt.Fprintf(w, "Hostname: %s\n\n", hostname)
+	fmt.Fprintf(w, "Hostname: %s\n\n", hostname)
 
-		fmt.Fprintf(w, "Request Information:\n")
-		tw := tabwriter.NewWriter(w, 0, 8, 1, '\t', tabwriter.AlignRight)
-		fmt.Fprintf(tw, "\tTimestamp:\t%s\n", now)
-		fmt.Fprintf(tw, "\tPath:\t%s\n", r.URL.Path)
-		fmt.Fprintf(tw, "\tMethod:\t%s\n", r.Method)
-		fmt.Fprintf(tw, "\tAddress:\t%s\n", r.RemoteAddr)
-		fmt.Fprintf(tw, "\tQuery:\t%s\n", r.URL.RawQuery)
-		fmt.Fprintf(tw, "\n")
-		tw.Flush()
+	fmt.Fprintf(w, "Request Information:\n")
+	tw := tabwriter.NewWriter(w, 0, 8, 1, '\t', tabwriter.AlignRight)
+	fmt.Fprintf(tw, "\tTimestamp:\t%s\n", now)
+	fmt.Fprintf(tw, "\tPath:\t%s\n", r.URL.Path)
+	fmt.Fprintf(tw, "\tMethod:\t%s\n", r.Method)
+	fmt.Fprintf(tw, "\tAddress:\t%s\n", r.RemoteAddr)
+	fmt.Fprintf(tw, "\tQuery:\t%s\n", r.URL.RawQuery)
+	fmt.Fprintf(tw, "\n")
+	tw.Flush()
 
-		fmt.Fprintf(w, "Headers:\n")
-		for _, h := range slices.Sorted(maps.Keys(r.Header)) {
-			fmt.Fprintf(tw, "\t%s\t%s\n", h, strings.Join(r.Header[h], ","))
-		}
-		tw.Flush()
-	})
-
-	return http.ListenAndServe(":8080", nil)
+	fmt.Fprintf(w, "Headers:\n")
+	for _, h := range slices.Sorted(maps.Keys(r.Header)) {
+		fmt.Fprintf(tw, "\t%s\t%s\n", h, strings.Join(r.Header[h], ","))
+	}
+	tw.Flush()
 }
 
 func logRequest(
