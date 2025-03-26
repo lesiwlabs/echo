@@ -18,7 +18,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"sync/atomic"
 	"text/tabwriter"
 	"time"
 
@@ -51,11 +50,7 @@ func ez[T comparable](v T, f func() error) error {
 
 var hostname string
 
-type hitcounter struct{ *atomic.Int64 }
-
-func (h hitcounter) String() string { return fmt.Sprintf("%d", h.Load()) }
-
-var hits = hitcounter{new(atomic.Int64)}
+var hits = expvar.NewInt("hits")
 
 func run() error {
 	if err := ez(os.Getenv("PGHOST"), ctr.Postgres); err != nil {
@@ -63,8 +58,6 @@ func run() error {
 	}
 	db = plain.ConnectPgx(ctx)
 	defers.Add(db.Close)
-
-	expvar.Publish("hits", hits)
 
 	var err error
 	hostname, err = os.Hostname()
