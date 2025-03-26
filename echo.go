@@ -6,16 +6,19 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"expvar"
 	"fmt"
 	"io"
 	"log/slog"
 	"maps"
 	"net"
 	"net/http"
+	_ "net/http/pprof"
 	"net/netip"
 	"os"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"text/tabwriter"
 	"time"
 
@@ -48,6 +51,12 @@ func ez[T comparable](v T, f func() error) error {
 
 var hostname string
 
+type hitcounter struct{ *atomic.Int64 }
+
+func (h hitcounter) String() string { return fmt.Sprintf("%d", h.Load()) }
+
+var hits = hitcounter{new(atomic.Int64)}
+
 func run() error {
 	if err := ez(os.Getenv("PGHOST"), ctr.Postgres); err != nil {
 		return fmt.Errorf("failed to set up postgres: %w", err)
@@ -55,12 +64,20 @@ func run() error {
 	db = plain.ConnectPgx(ctx)
 	defers.Add(db.Close)
 
+	expvar.Publish("hits", hits)
+
 	var err error
 	hostname, err = os.Hostname()
 	if err != nil {
 		hostname = "<unknown>"
 		slog.Error(err.Error())
 	}
+
+	go func() {
+		if err := http.ListenAndServe("localhost:6060", nil); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}()
 
 	l, err := net.Listen("tcp4", ":8080")
 	if err != nil {
@@ -74,6 +91,7 @@ type server func(w http.ResponseWriter, r *http.Request)
 func (f server) ServeHTTP(w http.ResponseWriter, r *http.Request) { f(w, r) }
 
 var echo server = func(w http.ResponseWriter, r *http.Request) {
+	hits.Add(1)
 	ip, _, _ := strings.Cut(r.RemoteAddr, ":")
 	for k, v := range r.Header {
 		if k == "X-Real-Ip" && len(v) > 0 && v[0] != "" {
