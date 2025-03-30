@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/jackc/pgx/v5 v5.6.0
-	labs.lesiw.io/ctr v0.0.0-20250325033636-e65e805360cb
+	labs.lesiw.io/ctr v0.0.0-20250329170213-58726556650b
 	lesiw.io/defers v0.9.0
 	lesiw.io/plain v0.4.0
 )
