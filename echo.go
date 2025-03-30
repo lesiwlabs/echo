@@ -79,11 +79,7 @@ func run() error {
 	return http.Serve(l, echo)
 }
 
-type server func(w http.ResponseWriter, r *http.Request)
-
-func (f server) ServeHTTP(w http.ResponseWriter, r *http.Request) { f(w, r) }
-
-var echo server = func(w http.ResponseWriter, r *http.Request) {
+var echo http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 	hits.Add(1)
 	ip, _, _ := strings.Cut(r.RemoteAddr, ":")
 	for k, v := range r.Header {
