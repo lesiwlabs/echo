@@ -101,23 +101,47 @@ var echo http.HandlerFunc = func(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
-	fmt.Fprintf(w, "Hostname: %s\n\n", hostname)
-
-	fmt.Fprintf(w, "Request Information:\n")
-	tw := tabwriter.NewWriter(w, 0, 8, 1, '\t', tabwriter.AlignRight)
-	fmt.Fprintf(tw, "\tTimestamp:\t%s\n", now)
-	fmt.Fprintf(tw, "\tPath:\t%s\n", r.URL.Path)
-	fmt.Fprintf(tw, "\tMethod:\t%s\n", r.Method)
-	fmt.Fprintf(tw, "\tAddress:\t%s\n", r.RemoteAddr)
-	fmt.Fprintf(tw, "\tQuery:\t%s\n", r.URL.RawQuery)
-	fmt.Fprintf(tw, "\n")
-	tw.Flush()
-
-	fmt.Fprintf(w, "Headers:\n")
-	for _, h := range slices.Sorted(maps.Keys(r.Header)) {
-		fmt.Fprintf(tw, "\t%s\t%s\n", h, strings.Join(r.Header[h], ","))
+	if err := writeBody(w, r, now); err != nil {
+		slog.Error("writeBody() err", "error", err)
 	}
-	tw.Flush()
+}
+
+func writeBody(
+	w http.ResponseWriter, r *http.Request, now time.Time,
+) (err error) {
+	tw := tabwriter.NewWriter(w, 0, 8, 1, '\t', tabwriter.AlignRight)
+	write := func(format string, a ...any) {
+		if err != nil {
+			return
+		}
+		_, err = fmt.Fprintf(tw, format, a...)
+	}
+	flush := func() {
+		if err != nil {
+			return
+		}
+		err = tw.Flush()
+	}
+
+	write("Hostname: %s\n\n", hostname)
+	flush()
+
+	write("Request Information:\n")
+	write("\tTimestamp:\t%s\n", now)
+	write("\tPath:\t%s\n", r.URL.Path)
+	write("\tMethod:\t%s\n", r.Method)
+	write("\tAddress:\t%s\n", r.RemoteAddr)
+	write("\tQuery:\t%s\n", r.URL.RawQuery)
+	write("\n")
+	flush()
+
+	write("Headers:\n")
+	for _, h := range slices.Sorted(maps.Keys(r.Header)) {
+		write("\t%s\t%s\n", h, strings.Join(r.Header[h], ","))
+	}
+	flush()
+
+	return
 }
 
 func logRequest(
