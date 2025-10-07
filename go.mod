@@ -12,6 +12,7 @@ require (
 	lesiw.io/errcheck v1.0.0
 	lesiw.io/linelen v0.1.0
 	lesiw.io/plain v0.4.0
+	lesiw.io/plscheck v0.20.0
 	lesiw.io/tidytypes v0.1.0
 )
 
@@ -26,9 +27,10 @@ require (
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/crypto v0.41.0 // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/sync v0.17.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/telemetry v0.0.0-20251001141935-4eae98a72453 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	lesiw.io/ctrctl v0.13.0 // indirect
 )
