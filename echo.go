@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
 	"labs.lesiw.io/ctr"
 	"labs.lesiw.io/echo/internal/stmt"
 	"lesiw.io/defers"
